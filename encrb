@@ -57,6 +57,14 @@ class Encrb:
         friendlyname = path_to_string(path)
         tmpdir = tempfile.mkdtemp('-' + friendlyname)
 
+        # Construct rsync params
+        rsync_parameters = ['-avz', '--append', '--progress', '--delete', '--delete-excluded', '--bwlimit', str(self.options.bwlimit)]
+        try:
+            for e in self.exclude_paths:
+                rsync_parameters.append('--exclude=' + e)
+        except:
+            pass
+
         # create encfs mount
         print 'Making encfs reverse mount to "%s"...' % tmpdir
         env = self.get_modified_env()
@@ -68,7 +76,7 @@ class Encrb:
                 destination = os.path.join(self.destination, friendlyname)
                 print 'Rsyncing encrypted "%s" to "%s"...' % (path, destination)
                 sys.stdout.flush()
-                subprocess.call(['rsync', '-avz', '--append', '--progress', '--delete', '--delete-excluded', '--bwlimit', str(self.options.bwlimit), tmpdir + '/', destination])
+                subprocess.call(['rsync'] + rsync_parameters + [tmpdir + '/', destination])
             except KeyboardInterrupt, e:
                 print 'KeyboardInterrupt, sleeping 1 sec, then unmounting'
                 time.sleep(1)
@@ -89,8 +97,8 @@ class Encrb:
             print 'Rsyncing Encfs keyfile to "%s"...' % (self.destination)
             sys.stdout.flush()
             subprocess.call(['rsync', '-avz', '--progress', '--bwlimit', str(self.options.bwlimit), self.options.keyfile, self.destination])
-        except KeyboardInterrupt, e:
-            print 'KeyboardInterrupt...'
+        except e:
+            #print 'KeyboardInterrupt...'
             time.sleep(1)
             raise e
 
@@ -137,6 +145,37 @@ class Encrb:
             os.rmdir(tmpdirplain)
             os.rmdir(tmpdir)
 
+    def get_exclude_paths(self):
+        exclude_paths = []
+
+        # Check if file has been specified
+        if (self.options.exclude_from == ''):
+            return exclude_paths
+
+        f = open(self.options.exclude_from, "r")
+
+        print 'Generating exclude path list...'
+        for backup_path in self.args[:-1]:
+            for exclude_dir in f:
+                exclude_dir = exclude_dir.strip()
+                
+                if (exclude_dir != '' and exclude_dir[0] != '#'):
+                    try:
+                        # Encode path names without mounting
+                        env = self.get_modified_env()
+                        output = subprocess.check_output(['encfsctl', 'encode', '--extpass', 'cat %s' % os.path.expanduser(self.options.passfile), backup_path, exclude_dir], env=env)
+                    
+                        print backup_path+"/"+exclude_dir+ "(" + output.strip() + ")"
+                    
+                        for exclude in iter(output.splitlines()):
+                            exclude_paths.append(exclude)
+
+                    except e:
+                        raise e
+
+        f.close()
+        return exclude_paths
+
     def run(self):
         parser = optparse.OptionParser(usage='usage: %prog [options] dir-to-back-up1... remotepath')
         parser.add_option('-k', '--keyfile', dest='keyfile', default='~/.encrb/encfs.xml', help='encfs keyfile to use [%default]')
@@ -145,12 +184,15 @@ class Encrb:
         parser.add_option('-v', '--verify', dest='verify', default=False, action="store_true", help="Instead of backing up, verify that the backups match sources")
         parser.add_option('', '--backup-keyfile', dest='backup_keyfile', default=False, action="store_true", help="Backup Encfs keyfile on remote machine - NOT RECOMMENDED")
         parser.add_option('', '--no-env-check', dest='check_env', default=True, action="store_false", help="Disable environment tool version checking")
+        parser.add_option('-e', '--exclude-from', dest='exclude_from', default='', help='Read rsync exclude patterns from file')
+        
 
         (options, args) = parser.parse_args()
         self.options = options
         self.args = args
         self.options.keyfile = os.path.expanduser(self.options.keyfile)
         self.options.passfile = os.path.expanduser(self.options.passfile)
+        self.options.exclude_from = os.path.expanduser(self.options.exclude_from)
         print 'Options:', options
 
         if (self.options.check_env):
@@ -164,10 +206,11 @@ class Encrb:
         print 'Destination:', self.destination
 
         self.setup_once()
-
+        self.exclude_paths = self.get_exclude_paths()
+        
         if (options.backup_keyfile):
             self.backup_keyfile()
-
+        
         for p in self.args[:-1]:
             if options.verify:
                 self.verify_path(p)
