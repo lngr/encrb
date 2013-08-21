@@ -52,6 +52,15 @@ class Encrb:
 
         os.rmdir(tmpdir)
 
+    def backup_keyfile(self):
+        try:
+            print 'Rsyncing Encfs keyfile to "%s"...' % (self.destination)
+            sys.stdout.flush()
+            subprocess.call(['rsync', '-avz', '--progress', '--bwlimit', str(self.options.bwlimit), self.options.keyfile, self.destination])
+        except KeyboardInterrupt, e:
+            print 'KeyboardInterrupt...'
+            raise e
+
     def get_modified_env(self):
         env = dict(os.environ)
         env['ENCFS6_CONFIG'] = os.path.expanduser(self.options.keyfile)
@@ -101,6 +110,7 @@ class Encrb:
         parser.add_option('-p', '--passfile', dest='passfile', default='~/.encrb/password', help='file containing encfs keyfile password [%default]')
         parser.add_option('-b', '--bwlimit', dest='bwlimit', default=0, type='int', help='Bandwidth limit (KiB/s) for rsync [%default]')
         parser.add_option('-v', '--verify', dest='verify', default=False, action="store_true", help="Instead of backing up, verify that the backups match sources")
+        parser.add_option('', '--backup-keyfile', dest='backup_keyfile', default=False, action="store_true", help="Backup Encfs keyfile on remote machine - NOT RECOMMENDED")
 
         (options, args) = parser.parse_args()
         self.options = options
@@ -116,7 +126,12 @@ class Encrb:
         # TODO check that running new enough encfs (old has bugs in --reverse mode)
         print 'Paths to back up:', self.args[:-1]
         print 'Destination:', self.destination
+
         self.setup_once()
+
+        if (options.backup_keyfile):
+            self.backup_keyfile()
+
         for p in self.args[:-1]:
             if options.verify:
                 self.verify_path(p)
