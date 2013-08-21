@@ -11,15 +11,47 @@ import os
 import random
 import string
 import subprocess
+import commands
 import sys
 import tempfile
 import time
 import getpass
+import re
 
 def path_to_string(path):
     return path.strip('/').replace('/', '-')
 
 class Encrb:
+    def check_environment(self):
+        required_tools = [('encfs', 1, 7, 3), ('sshfs', 0, 0, 0), ('rsync', 0, 0, 0), ('fusermount', 0, 0, 0)]
+        
+        for (required_cmd, required_major, required_minor, required_build) in required_tools:
+            status, version = commands.getstatusoutput(required_cmd + " --version")
+
+            # Check return value
+            if (status != 0):
+                raise Exception(required_cmd + " not found or crashed during version call...")
+            
+            # Consider only first "version" line
+            version = version.split('\n')[0]
+
+            # Look only for two or three numbers separated by dots
+            version = str(re.search(r"\d\.\d(\.\d)?", version).group())
+
+            # Parse version numbers
+            version_numbers = version.split('.')
+            version_major = int(version_numbers[0])
+            version_minor = int(version_numbers[1])
+            version_build = 0
+            if (len(version_numbers) > 2):
+                version_build = int(version_numbers[2])
+            
+            # Check version
+            if ((version_major, version_minor, version_build) < (required_major, required_minor, required_build)):
+                raise Exception(required_cmd + " must have version " + ".".join([str(required_major), str(required_minor), str(required_build)]) + " or higher, is: " + version)
+                
+            print required_cmd + " version: " + version
+
     def backup_path(self, path):
         print 'Backing up:', path
         friendlyname = path_to_string(path)
@@ -59,6 +91,7 @@ class Encrb:
             subprocess.call(['rsync', '-avz', '--progress', '--bwlimit', str(self.options.bwlimit), self.options.keyfile, self.destination])
         except KeyboardInterrupt, e:
             print 'KeyboardInterrupt...'
+            time.sleep(1)
             raise e
 
     def get_modified_env(self):
@@ -111,6 +144,7 @@ class Encrb:
         parser.add_option('-b', '--bwlimit', dest='bwlimit', default=0, type='int', help='Bandwidth limit (KiB/s) for rsync [%default]')
         parser.add_option('-v', '--verify', dest='verify', default=False, action="store_true", help="Instead of backing up, verify that the backups match sources")
         parser.add_option('', '--backup-keyfile', dest='backup_keyfile', default=False, action="store_true", help="Backup Encfs keyfile on remote machine - NOT RECOMMENDED")
+        parser.add_option('', '--no-env-check', dest='check_env', default=True, action="store_false", help="Disable environment tool version checking")
 
         (options, args) = parser.parse_args()
         self.options = options
@@ -119,11 +153,13 @@ class Encrb:
         self.options.passfile = os.path.expanduser(self.options.passfile)
         print 'Options:', options
 
+        if (self.options.check_env):
+            self.check_environment()
+
         if len(self.args) < 2:
             parser.error('Need more than two arguments')
 
         self.destination = self.args[-1]
-        # TODO check that running new enough encfs (old has bugs in --reverse mode)
         print 'Paths to back up:', self.args[:-1]
         print 'Destination:', self.destination
 
