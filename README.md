@@ -22,9 +22,9 @@ Usage
     Options:
       -h, --help            show this help message and exit
       -k KEYFILE, --keyfile=KEYFILE
-                            encfs keyfile to use [~/.encfs6-encrb.xml]
+                            encfs keyfile to use [~/.encrb/encfs.xml]
       -p PASSFILE, --passfile=PASSFILE
-                            file containing encfs keyfile password [~/.encfs-
+                            file containing encfs keyfile password [~/.encrb/
                             password]
       -b BWLIMIT, --bwlimit=BWLIMIT
                             Bandwidth limit (KiB/s) for rsync [0]

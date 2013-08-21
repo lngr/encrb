@@ -96,8 +96,8 @@ class Encrb:
 
 	def run(self):
 		parser = optparse.OptionParser(usage='usage: %prog [options] dir-to-back-up1... remotepath')
-		parser.add_option('-k', '--keyfile', dest='keyfile', default='~/.encfs6-encrb.xml', help='encfs keyfile to use [%default]')
-		parser.add_option('-p', '--passfile', dest='passfile', default='~/.encfs-password', help='file containing encfs keyfile password [%default]')
+		parser.add_option('-k', '--keyfile', dest='keyfile', default='~/.encrb/encfs.xml', help='encfs keyfile to use [%default]')
+		parser.add_option('-p', '--passfile', dest='passfile', default='~/.encrb/password', help='file containing encfs keyfile password [%default]')
 		parser.add_option('-b', '--bwlimit', dest='bwlimit', default=0, type='int', help='Bandwidth limit (KiB/s) for rsync [%default]')
 		parser.add_option('-v', '--verify', dest='verify', default=False, action="store_true", help="Instead of backing up, verify that the backups match sources")
 
@@ -128,6 +128,12 @@ class Encrb:
 
 		print '!!!!! Keyfile and passfile missing, running in setup mode. Press enter for default encfs settings.'
 
+		# Ensure passfile leaf and parent dirs are present,
+		# otherwise open() will fail
+		fdir = os.path.dirname(self.options.keyfile)
+		if not os.path.exists(fdir):
+			os.makedirs(fdir)
+		
 		# generate and save password
 		password = ''.join(random.choice(string.letters + string.digits) for _ in range(10))
 		f = open(self.options.passfile, 'w')
