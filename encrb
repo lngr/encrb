@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import getpass
 
 def path_to_string(path):
     return path.strip('/').replace('/', '-')
@@ -134,8 +135,12 @@ class Encrb:
         if not os.path.exists(fdir):
             os.makedirs(fdir)
         
-        # generate and save password
-        password = ''.join(random.choice(string.letters + string.digits) for _ in range(10))
+        # Ask or generate and save password
+        password = getpass.getpass(prompt='Encfs encryption password (enter for random): ')
+        if (password == ''):
+            print "No password given, generating random one..."
+            password = ''.join(random.choice(string.letters + string.digits) for _ in range(20))
+        
         f = open(self.options.passfile, 'w')
         f.write(password)
         f.close()
