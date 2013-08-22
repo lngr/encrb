@@ -58,7 +58,7 @@ class Encrb:
         tmpdir = tempfile.mkdtemp('-' + friendlyname)
 
         # Construct rsync params
-        rsync_parameters = ['-avz', '--append', '--progress', '--bwlimit', str(self.options.bwlimit)]
+        rsync_parameters = ['-avz', '--partial', '--progress', '--bwlimit', str(self.options.bwlimit)]
         try:
             for e in self.exclude_paths:
                 rsync_parameters.append('--exclude=' + e)
