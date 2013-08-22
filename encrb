@@ -58,7 +58,7 @@ class Encrb:
         tmpdir = tempfile.mkdtemp('-' + friendlyname)
 
         # Construct rsync params
-        rsync_parameters = ['-avz', '--partial', '--progress', '--bwlimit', str(self.options.bwlimit)]
+        rsync_parameters = ['-avz', '--partial', '--progress', '--bwlimit', str(self.options.bwlimit), '-e', 'ssh -p ' + str(self.options.port)]
         try:
             for e in self.exclude_paths:
                 rsync_parameters.append('--exclude=' + e)
@@ -99,7 +99,7 @@ class Encrb:
         try:
             print 'Rsyncing Encfs keyfile to "%s"...' % (self.destination)
             sys.stdout.flush()
-            subprocess.call(['rsync', '-avz', '--progress', '--bwlimit', str(self.options.bwlimit), self.options.keyfile, self.destination])
+            subprocess.call(['rsync', '-avz', '--progress', '--bwlimit', str(self.options.bwlimit), '-e', 'ssh -p ' + str(self.options.port), self.options.keyfile, self.destination])
         except e:
             #print 'KeyboardInterrupt...'
             time.sleep(1)
@@ -187,7 +187,7 @@ class Encrb:
         parser.add_option('', '--no-env-check', dest='check_env', default=True, action="store_false", help="Disable environment tool version checking")
         parser.add_option('-e', '--exclude-from', dest='exclude_from', default='', help='Read rsync exclude patterns from file')
         parser.add_option('', '--no-delete', dest='rsync_delete', default=True, action="store_false", help="Do not delete existing remote files that are no longer present locally or have been excluded")
-
+        parser.add_option('-P', '--port', dest='port', default=22, type='int', help='Port used by rsync [%default]')
 
         (options, args) = parser.parse_args()
         self.options = options
