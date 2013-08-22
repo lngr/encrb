@@ -58,12 +58,15 @@ class Encrb:
         tmpdir = tempfile.mkdtemp('-' + friendlyname)
 
         # Construct rsync params
-        rsync_parameters = ['-avz', '--append', '--progress', '--delete', '--delete-excluded', '--bwlimit', str(self.options.bwlimit)]
+        rsync_parameters = ['-avz', '--append', '--progress', '--bwlimit', str(self.options.bwlimit)]
         try:
             for e in self.exclude_paths:
                 rsync_parameters.append('--exclude=' + e)
         except:
             pass
+
+        if (self.options.rsync_delete):
+            rsync_parameters += ['--delete', '--delete-excluded']
 
         # create encfs mount
         print 'Making encfs reverse mount to "%s"...' % tmpdir
@@ -183,6 +186,8 @@ class Encrb:
         parser.add_option('', '--backup-keyfile', dest='backup_keyfile', default=False, action="store_true", help="Backup Encfs keyfile on remote machine - NOT RECOMMENDED")
         parser.add_option('', '--no-env-check', dest='check_env', default=True, action="store_false", help="Disable environment tool version checking")
         parser.add_option('-e', '--exclude-from', dest='exclude_from', default='', help='Read rsync exclude patterns from file')
+        parser.add_option('', '--no-delete', dest='rsync_delete', default=True, action="store_false", help="Do not delete existing remote files that are no longer present locally or have been excluded")
+
 
         (options, args) = parser.parse_args()
         self.options = options
@@ -203,7 +208,7 @@ class Encrb:
         print 'Destination:', self.destination
 
         self.setup_once()
-        
+
         if (options.backup_keyfile):
             self.backup_keyfile()
         
