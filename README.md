@@ -1,8 +1,8 @@
 encrb - encrypted remote backups
 ================================
 
-encrb backs up plaintext local directories to remote machine as encrypted,
-using encfs --reverse and rsync.
+encrb incrementally backs up local directories to a remote machine 
+as encrypted files using encfs --reverse and rsync.
 
 Example
 -------
@@ -28,6 +28,16 @@ Usage
                             password]
       -b BWLIMIT, --bwlimit=BWLIMIT
                             Bandwidth limit (KiB/s) for rsync [0]
+      -P, --port=PORT       Port used by rsync [22]
+      -v, --verify          Instead of backing up, verify that the backups 
+                            match sources
+      --backup-keyfile      Backup Encfs keyfile on remote machine - 
+                            NOT RECOMMENDED
+      --no-env-check        Disable environment tool version checking
+      -e EXCLUDEFILE, --exclude-from=EXCLUDEFILE
+                            Read rsync exclude patterns from file
+      --do-delete           Do not delete existing remote files that are no 
+                            longer present locally or have been excluded
 
 Backing up keyfile and password
 -------------------------------
@@ -37,6 +47,37 @@ will lose access to the encrypted data. Naturally you should not back up the
 keyfile to the same place where you put the actual backups. And it is a very
 good idea to have multiple backups of the keyfile (and password). For maximum
 security, keep the data, the keyfile and the password at different locations.
+If remote environment is semi-trusted (e.g. you home server) you could use
+"--backup-keyfile" parameter to backup keyfile remotely.
+
+Excluding files and directories
+-------------------------------
+
+To exclude local files from being remotely backed up you can use
+"--exclude-from" option. All entries must be *relative* to your backup
+directory. For example, if you call encrb with "--exlcude-from ~/.encrb/
+exclude.txt", and exclude.txt would have the following content:
+    
+    # General dirs
+    Downloads/
+    
+    # Large files
+    vm_disk.img
+
+it would not backup "Downloads/" directory and "vm_disk.img" file remotely,
+*relative* to your backup dir. So if you are backing up "/home/user/" path,
+rsync would exclude "/home/user/Downloads/" directory and "home/user/"
+vm_disk.img" file. Note: empty and lines starting with "#" are ignored.
+
+No-delete sync
+--------------
+
+"--no-delete" option can protect from accidental local file deletion.
+A good idea is to run encrb with this option on hourly basis and only
+allow deletion (i.e. no option provided) on weekly basis thus still reclaiming
+space on the remote machine but having an option for fast file recovery on
+accidental file removal.
+
 
 Running from crontab
 --------------------
@@ -49,8 +90,8 @@ something similar to make sure no multiple instances are running, like this:
 Dependencies
 ------------
 
-* encfs 1.7.4 or later
-* python
+* encfs 1.7.3 or later
+* python2
 * rsync
 
 License
