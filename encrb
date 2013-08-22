@@ -165,8 +165,6 @@ class Encrb:
                         env = self.get_modified_env()
                         output = subprocess.check_output(['encfsctl', 'encode', '--extpass', 'cat %s' % os.path.expanduser(self.options.passfile), backup_path, exclude_dir], env=env)
                     
-                        print backup_path+"/"+exclude_dir+ "(" + output.strip() + ")"
-                    
                         for exclude in iter(output.splitlines()):
                             exclude_paths.append(exclude)
 
@@ -185,7 +183,6 @@ class Encrb:
         parser.add_option('', '--backup-keyfile', dest='backup_keyfile', default=False, action="store_true", help="Backup Encfs keyfile on remote machine - NOT RECOMMENDED")
         parser.add_option('', '--no-env-check', dest='check_env', default=True, action="store_false", help="Disable environment tool version checking")
         parser.add_option('-e', '--exclude-from', dest='exclude_from', default='', help='Read rsync exclude patterns from file')
-        
 
         (options, args) = parser.parse_args()
         self.options = options
@@ -206,11 +203,12 @@ class Encrb:
         print 'Destination:', self.destination
 
         self.setup_once()
-        self.exclude_paths = self.get_exclude_paths()
         
         if (options.backup_keyfile):
             self.backup_keyfile()
         
+        self.exclude_paths = self.get_exclude_paths()
+
         for p in self.args[:-1]:
             if options.verify:
                 self.verify_path(p)
@@ -218,26 +216,39 @@ class Encrb:
                 self.backup_path(p)
 
     def setup_once(self):
-        if os.path.exists(self.options.keyfile) or os.path.exists(self.options.passfile):
-            return
+        if (not os.path.exists(self.options.passfile)):
+            print '!!!!! Passfile missing, running in setup mode. Press enter for default encfs settings.'
 
-        print '!!!!! Keyfile and passfile missing, running in setup mode. Press enter for default encfs settings.'
+            # Ensure passfile leaf and parent dirs are present,
+            # otherwise open() will fail
+            fdir = os.path.dirname(self.options.keyfile)
+            if not os.path.exists(fdir):
+                os.makedirs(fdir)
+        
+            # Ask or generate and save password
+            password = getpass.getpass(prompt='Encfs encryption password (enter for random): ')
+            if (password == ''):
+                print "No password given, generating random one..."
+                password = ''.join(random.choice(string.letters + string.digits) for _ in range(20))
+        
+            f = open(self.options.passfile, 'w')
+            f.write(password)
+            f.close()
 
-        # Ensure passfile leaf and parent dirs are present,
-        # otherwise open() will fail
-        fdir = os.path.dirname(self.options.keyfile)
-        if not os.path.exists(fdir):
-            os.makedirs(fdir)
-        
-        # Ask or generate and save password
-        password = getpass.getpass(prompt='Encfs encryption password (enter for random): ')
-        if (password == ''):
-            print "No password given, generating random one..."
-            password = ''.join(random.choice(string.letters + string.digits) for _ in range(20))
-        
-        f = open(self.options.passfile, 'w')
-        f.write(password)
-        f.close()
+        if (not os.path.exists(self.options.keyfile)):
+            print '!!!!! keyfile missing, running in setup mode. Press enter for default encfs settings.'
+
+            # Mount in reverse mode on arbitrary directory,
+            # as this seems to be the only way to generate config
+            tmpdir = tempfile.mkdtemp('-encfs-first')
+            tmpdirplain = tempfile.mkdtemp('-encfs-first-plain')
+            try:
+                print "Mounting encfs for first time..."
+                env = self.get_modified_env()
+                subprocess.call(['encfs', '--extpass', 'cat %s' % os.path.expanduser(self.options.passfile), '--reverse', tmpdir, tmpdirplain], env=env)
+            finally:
+                print 'Unmounting encfs "%s...' % tmpdirplain
+                subprocess.call(['fusermount', '-u', tmpdirplain])
 
 e = Encrb()
 e.run()
