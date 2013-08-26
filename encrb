@@ -59,11 +59,14 @@ class Encrb:
 
         # Construct rsync params
         rsync_parameters = ['-avz', '--partial', '--progress', '--bwlimit', str(self.options.bwlimit), '-e', 'ssh -p ' + str(self.options.port)]
-        try:
-            for e in self.exclude_paths:
-                rsync_parameters.append('--exclude=' + e)
-        except:
-            pass
+
+        # Include filters must go before exclude for rsync to work as intended
+        for filter_name in ["include", "exclude"]:
+            try:
+                for e in self.filter_paths[filter_name]:
+                    rsync_parameters.append('--' + filter_name + '=' + e)
+            except:
+                pass
 
         if (self.options.rsync_delete):
             rsync_parameters += ['--delete', '--delete-excluded']
@@ -148,34 +151,47 @@ class Encrb:
             os.rmdir(tmpdirplain)
             os.rmdir(tmpdir)
 
-    def get_exclude_paths(self):
-        exclude_paths = []
+    def get_filter_paths(self):
+        filter_paths = {}
 
-        # Check if file has been specified
-        if (self.options.exclude_from == ''):
-            return exclude_paths
+        for (file_name, filter_name) in [(self.options.include_from, "include"), (self.options.exclude_from, "exclude")]:
+            # Check if filter file has been specified
+            if (file_name == ''):
+                continue
 
-        f = open(self.options.exclude_from, "r")
+            f = open(file_name, "r")
+            filter_paths[filter_name] = []
 
-        print 'Generating exclude path list...'
-        for backup_path in self.args[:-1]:
-            for exclude_dir in f:
-                exclude_dir = exclude_dir.strip()
-                
-                if (exclude_dir != '' and exclude_dir[0] != '#'):
-                    try:
-                        # Encode path names without mounting
-                        env = self.get_modified_env()
-                        output = subprocess.check_output(['encfsctl', 'encode', '--extpass', 'cat %s' % os.path.expanduser(self.options.passfile), backup_path, exclude_dir], env=env)
+            print 'Generating ' + filter_name + ' path list...'
+            for backup_path in self.args[:-1]:
+                for filter_dir in f:
+                    filter_dir = filter_dir.strip()
                     
-                        for exclude in iter(output.splitlines()):
-                            exclude_paths.append(exclude)
+                    # If not a comment or empty line
+                    if (filter_dir != '' and filter_dir[0] != '#'):
+                        # Check if wildcard pattern used to include dir but exclude its content
+                        create_filter_dir = filter_dir[-1] == '*'
 
-                    except e:
-                        raise e
+                        # encfs encode does not understand wildcards :(
+                        filter_dir = filter_dir.strip('*')
 
-        f.close()
-        return exclude_paths
+                        try:
+                            # Encode path names without mounting
+                            env = self.get_modified_env()
+                            output = subprocess.check_output(['encfsctl', 'encode', '--extpass', 'cat %s' % os.path.expanduser(self.options.passfile), backup_path, filter_dir], env=env)
+
+                            for encoded_filter in iter(output.splitlines()):
+                                if (create_filter_dir):
+                                    encoded_filter += '*'
+
+                                filter_paths[filter_name].append(encoded_filter)
+
+                        except e:
+                            raise e
+
+            f.close()
+
+        return filter_paths
 
     def run(self):
         parser = optparse.OptionParser(usage='usage: %prog [options] dir-to-back-up1... remotepath')
@@ -185,6 +201,7 @@ class Encrb:
         parser.add_option('-v', '--verify', dest='verify', default=False, action="store_true", help="Instead of backing up, verify that the backups match sources")
         parser.add_option('', '--backup-keyfile', dest='backup_keyfile', default=False, action="store_true", help="Backup Encfs keyfile on remote machine - NOT RECOMMENDED")
         parser.add_option('', '--no-env-check', dest='check_env', default=True, action="store_false", help="Disable environment tool version checking")
+        parser.add_option('-i', '--include-from', dest='include_from', default='', help='Read rsync include patterns from file')
         parser.add_option('-e', '--exclude-from', dest='exclude_from', default='', help='Read rsync exclude patterns from file')
         parser.add_option('', '--no-delete', dest='rsync_delete', default=True, action="store_false", help="Do not delete existing remote files that are no longer present locally or have been excluded")
         parser.add_option('-P', '--port', dest='port', default=22, type='int', help='Port used by rsync [%default]')
@@ -194,6 +211,7 @@ class Encrb:
         self.args = args
         self.options.keyfile = os.path.expanduser(self.options.keyfile)
         self.options.passfile = os.path.expanduser(self.options.passfile)
+        self.options.include_from = os.path.expanduser(self.options.include_from)
         self.options.exclude_from = os.path.expanduser(self.options.exclude_from)
         print 'Options:', options
 
@@ -212,7 +230,7 @@ class Encrb:
         if (options.backup_keyfile):
             self.backup_keyfile()
         
-        self.exclude_paths = self.get_exclude_paths()
+        self.filter_paths = self.get_filter_paths()
 
         for p in self.args[:-1]:
             if options.verify:

@@ -47,7 +47,7 @@ will lose access to the encrypted data. Naturally you should not back up the
 keyfile to the same place where you put the actual backups. And it is a very
 good idea to have multiple backups of the keyfile (and password). For maximum
 security, keep the data, the keyfile and the password at different locations.
-If remote environment is semi-trusted (e.g. you home server) you could use
+If remote environment is semi-trusted (e.g. your home server) you could use
 "--backup-keyfile" parameter to backup keyfile remotely.
 
 Excluding files and directories
