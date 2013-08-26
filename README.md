@@ -94,6 +94,13 @@ something similar to make sure no multiple instances are running, like this:
 
     30 0 * * * flock -n /tmp/encrb.lockfile /path/to/encrb --bwlimit 100 $HOME/docs $HOME/projects some.server.eu:/home/user/backups/
 
+Recovering backup
+-----------------
+
+To recover files from encrypted backup use:
+
+    # ENCFS6_CONFIG=/path/to/encfs.xml encfs /path/to/ecrypted/backup /path/to/mountpoint
+
 Dependencies
 ------------
 
