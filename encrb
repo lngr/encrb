@@ -170,7 +170,7 @@ class Encrb:
                     # If not a comment or empty line
                     if (filter_dir != '' and filter_dir[0] != '#'):
                         # Check if wildcard pattern used to include dir but exclude its content
-                        create_filter_dir = filter_dir[-1] == '*'
+                        wildcard_dir = (filter_dir[-2:] == '/*')
 
                         # encfs encode does not understand wildcards :(
                         filter_dir = filter_dir.strip('*')
@@ -181,7 +181,7 @@ class Encrb:
                             output = subprocess.check_output(['encfsctl', 'encode', '--extpass', 'cat %s' % os.path.expanduser(self.options.passfile), backup_path, filter_dir], env=env)
 
                             for encoded_filter in iter(output.splitlines()):
-                                if (create_filter_dir):
+                                if (wildcard_dir):
                                     encoded_filter += '*'
 
                                 filter_paths[filter_name].append(encoded_filter)
