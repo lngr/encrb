@@ -34,6 +34,8 @@ Usage
       --backup-keyfile      Backup Encfs keyfile on remote machine - 
                             NOT RECOMMENDED
       --no-env-check        Disable environment tool version checking
+      -i INCLUDEFILE, --include-from=INCLUDEFILE
+                            Read rsync include patterns from file
       -e EXCLUDEFILE, --exclude-from=EXCLUDEFILE
                             Read rsync exclude patterns from file
       --do-delete           Do not delete existing remote files that are no 
@@ -58,16 +60,21 @@ To exclude local files from being remotely backed up you can use
 directory. For example, if you call encrb with "--exlcude-from ~/.encrb/
 exclude.txt", and exclude.txt would have the following content:
     
-    # General dirs
+    # Complete directories
     Downloads/
     
+    # Contents of the directory, but not itself
+    Pictures/*
+
     # Large files
     vm_disk.img
 
-it would not backup "Downloads/" directory and "vm_disk.img" file remotely,
-*relative* to your backup dir. So if you are backing up "/home/user/" path,
-rsync would exclude "/home/user/Downloads/" directory and "home/user/"
-vm_disk.img" file. Note: empty and lines starting with "#" are ignored.
+it would not backup "Downloads/" directory, the content of "Pictures/*" 
+and "vm_disk.img" file remotely, *relative* to your backup dir. So if you are 
+backing up "/home/user/" path, rsync would exclude "/home/user/Downloads/" 
+directory and "home/user/" vm_disk.img" file completely, but would create an 
+empty "Pictures" directory on the remote machine. Note: empty and lines 
+starting with "#" are ignored.
 
 No-delete sync
 --------------
