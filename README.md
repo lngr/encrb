@@ -38,8 +38,10 @@ Usage
                             Read rsync include patterns from file
       -e EXCLUDEFILE, --exclude-from=EXCLUDEFILE
                             Read rsync exclude patterns from file
-      --do-delete           Do not delete existing remote files that are no 
+      --no-delete           Do not delete existing remote files that are no 
                             longer present locally or have been excluded
+      -P --Port				Port used by rsync (22 default)
+      -t --tmpdir			Define a custom tmp dir where the reverse encfs will be mounted, if not set, the system default temp dir will be used.
 
 Backing up keyfile and password
 -------------------------------
@@ -107,6 +109,7 @@ Dependencies
 * encfs 1.7.3 or later
 * python2
 * rsync
+* sshfs
 
 License
 -------
