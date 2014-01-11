@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Copyright (c) 2012-2013 Heikki Hokkanen <hoxu at users.sf.net>
 # Copyright (c) 2013 Andrius Sutas <git at motoko.sutas.eu>
+# Copyright (c) 2014 Gustavo Brigo <me at gustavobrigo.com>
 # License: GPLv3
 # encrb - encrypted remote backup
 #
@@ -205,6 +206,7 @@ class Encrb:
         parser.add_option('-e', '--exclude-from', dest='exclude_from', default='', help='Read rsync exclude patterns from file')
         parser.add_option('', '--no-delete', dest='rsync_delete', default=True, action="store_false", help="Do not delete existing remote files that are no longer present locally or have been excluded")
         parser.add_option('-P', '--port', dest='port', default=22, type='int', help='Port used by rsync [%default]')
+        parser.add_option('-t', '--tmpdir', dest='custom_tmp', default='', help='Define a custom tmp dir, otherwise the system default will be used')
 
         (options, args) = parser.parse_args()
         self.options = options
@@ -213,6 +215,7 @@ class Encrb:
         self.options.passfile = os.path.expanduser(self.options.passfile)
         self.options.include_from = os.path.expanduser(self.options.include_from)
         self.options.exclude_from = os.path.expanduser(self.options.exclude_from)
+        self.options.custom_tmp = os.path.expanduser(self.options.custom_tmp)
         print 'Options:', options
 
         if (self.options.check_env):
@@ -220,6 +223,12 @@ class Encrb:
 
         if len(self.args) < 2:
             parser.error('Need more than two arguments')
+
+        if (self.options.custom_tmp):
+            if (not os.path.exists(self.options.custom_tmp)):
+                parser.error('Invalid temp dir')
+            else:
+                tempfile.tempdir = self.options.custom_tmp
 
         self.destination = self.args[-1]
         print 'Paths to back up:', self.args[:-1]
