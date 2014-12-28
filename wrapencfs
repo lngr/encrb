@@ -73,7 +73,7 @@ class Encrb:
         print 'Mounting encfs on "%s"...' % tmpdir
         try:
             env = self.get_modified_env()
-            subprocess.call(['encfs', '--extpass', 'cat %s' % os.path.expanduser(self.options.passfile), path, tmpdir], env=env)
+            subprocess.call(['encfs', '--reverse', '--extpass', 'cat %s' % os.path.expanduser(self.options.passfile), path, tmpdir], env=env)
             cmd = self.substitute_args(tmpdir);
             print 'Running: ', cmd
             subprocess.call(cmd)
