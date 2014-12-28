@@ -7,7 +7,7 @@ an encyrpted view onto a local directory using encfs --reverse.
 The intended use are backups with rsync to remote destionations
 that you don't trust.
 
-It is based on the hoxu/encrb tool, but differs from encrb in that
+It is based on the [hoxu/encrb](https://github.com/hoxu/encrb) tool, but differs from encrb in that
 it does not hardcode the actual rsync command but rather
 provides a wrapper around the command one wants to call, which
 gives the user full flexibility over the options to rsync, for
