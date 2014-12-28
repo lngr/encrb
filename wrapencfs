@@ -60,7 +60,7 @@ class Encrb:
         return env
 
     def substitute_args(self, encpath):
-        return [ encpath if a == '{}' else a for a in self.args[1:] ]
+        return [ a.replace('{}', encpath) for a in self.args[1:] ]
 
     def run_wrapped(self):
         path = self.args[0]
