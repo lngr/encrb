@@ -89,8 +89,8 @@ class Encrb:
 
     def run(self):
         parser = optparse.OptionParser(usage='usage: %prog [options] dir/to/encrypt command -to -call {}')
-        parser.add_option('-k', '--keyfile', dest='keyfile', default='~/.encrb/encfs.xml', help='encfs keyfile to use [%default]')
-        parser.add_option('-p', '--passfile', dest='passfile', default='~/.encrb/password', help='file containing encfs keyfile password [%default]')
+        parser.add_option('-k', '--keyfile', dest='keyfile', default='~/.wrapencfs/encfs.xml', help='encfs keyfile to use [%default]')
+        parser.add_option('-p', '--passfile', dest='passfile', default='~/.wrapencfs/password', help='file containing encfs keyfile password [%default]')
         parser.add_option('', '--no-env-check', dest='check_env', default=True, action="store_false", help="Disable environment tool version checking")
         parser.add_option('-t', '--tmpdir', dest='custom_tmp', default='', help='Define a custom tmp dir, otherwise the system default will be used')
 
