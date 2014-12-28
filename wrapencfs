@@ -52,7 +52,8 @@ class Encrb:
             if ((version_major, version_minor, version_build) < (required_major, required_minor, required_build)):
                 raise Exception(required_cmd + " must have version " + ".".join([str(required_major), str(required_minor), str(required_build)]) + " or higher, is: " + version)
                 
-            print required_cmd + " version: " + version
+            if (self.options.verbose):
+                print required_cmd + " version: " + version
 
     def get_modified_env(self):
         env = dict(os.environ)
