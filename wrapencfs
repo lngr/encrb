@@ -64,23 +64,27 @@ class Encrb:
 
     def run_wrapped(self):
         path = self.args[0]
-        print 'Wrapping path:', path
+        if (self.options.verbose):
+            print 'Wrapping path:', path
 
         friendlyname = path_to_string(path)
         tmpdir = tempfile.mkdtemp('-' + friendlyname)
 
         # create encfs mount
-        print 'Mounting encfs on "%s"...' % tmpdir
+        if (self.options.verbose):
+            print 'Mounting encfs on "%s"...' % tmpdir
         try:
             env = self.get_modified_env()
             subprocess.call(['encfs', '--reverse', '--extpass', 'cat %s' % os.path.expanduser(self.options.passfile), path, tmpdir], env=env)
             cmd = self.substitute_args(tmpdir);
-            print 'Running: ', cmd
+            if (self.options.verbose):
+                print 'Running: ', cmd
             subprocess.call(cmd)
 
         finally:
             # wait a bit, or unmounting fails
-            print 'Sleeping a bit...'
+            if (self.options.verbose):
+                print 'Sleeping a bit...'
             time.sleep(5)
 
             # umount encfs
@@ -88,11 +92,12 @@ class Encrb:
             os.rmdir(tmpdir)
 
     def run(self):
-        parser = optparse.OptionParser(usage='usage: %prog [options] dir/to/encrypt command -to -call {}')
+        parser = optparse.OptionParser(usage='Usage: %prog [options] /path/to/encrypt <command>\nAny occurence of the string "{}" in the command will be replaced by the encrypted path.')
         parser.add_option('-k', '--keyfile', dest='keyfile', default='~/.wrapencfs/encfs.xml', help='encfs keyfile to use [%default]')
         parser.add_option('-p', '--passfile', dest='passfile', default='~/.wrapencfs/password', help='file containing encfs keyfile password [%default]')
         parser.add_option('', '--no-env-check', dest='check_env', default=True, action="store_false", help="Disable environment tool version checking")
         parser.add_option('-t', '--tmpdir', dest='custom_tmp', default='', help='Define a custom tmp dir, otherwise the system default will be used')
+        parser.add_option('-v', '--verbose', dest='verbose', default=False, action="store_true", help='Verbose output')
 
         (options, args) = parser.parse_args()
         self.options = options
@@ -100,7 +105,8 @@ class Encrb:
         self.options.keyfile = os.path.expanduser(self.options.keyfile)
         self.options.passfile = os.path.expanduser(self.options.passfile)
         self.options.custom_tmp = os.path.expanduser(self.options.custom_tmp)
-        print 'Options:', options
+        if (self.options.verbose):
+            print 'Options:', options
 
         if (self.options.check_env):
             self.check_environment()
